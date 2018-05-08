@@ -5,6 +5,6 @@ Based of <a href="https://github.com/Charcoal-SE/SmokeDetector">smoke-detector</
 
 I wanted to add commment moderation, but as smoke-detector is done in python, while my expertise is c/c++. I did that port for that reason.
 
-To be used on StackExchange.
+To be used on <a href="https://stackexchange.com/">StackExchange</a>.
 
 Code commit coming soon.
