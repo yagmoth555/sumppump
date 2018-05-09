@@ -1,5 +1,5 @@
 sumppump: sumppump.o socket.o
-	gcc7 -o sumppump sumppump.o socket.o
+	gcc7 -pthread -lssl -lcrypto -o sumppump sumppump.o socket.o
 
 sumppump.o: sumppump.c socket.h
 	gcc7 -c sumppump.c
