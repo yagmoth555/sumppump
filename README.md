@@ -1,4 +1,4 @@
-:warning:  **This project is an alpha - not finished** :warning:
+:warning:  **This project is an alpha - not finished yet** :warning:
 
 # sumppump
 Bot that detects spam and posts links to it to chatrooms for quick deletion. 
