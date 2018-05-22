@@ -93,35 +93,11 @@ int SP_dbTableStructure () {
    
    sql = "CREATE TABLE user ("  \
          "user_id INT PRIMARY KEY     NOT NULL," \
-		 /*
-		"reputation": 216,
-        "user_id": 4439019,
-        "user_type": "registered",
-        "accept_rate": 91,
-        "profile_image": "https://www.gravatar.com/avatar/ef8889f7e466495157e2527a85930a9c?s=128&d=identicon&r=PG&f=1",
-        "display_name": "JD2775",
-        "link"*/	 
+	 
          "name           TEXT    NOT NULL ); ";
 
 	sql = "CREATE TABLE comment ("  \
          "user_id INT PRIMARY KEY     NOT NULL," \
-		/*
-		"edited": false,
-		"score": 0,
-		"creation_date": 1526674011,
-		"post_id": 50418549,
-		"comment_id": 87852650
-		*/	 
-		/*
-		"reply_to_user": {
-        "reputation": 14757,
-        "user_id": 1790644,
-        "user_type": "registered",
-        "accept_rate": 80,
-        "profile_image": "https://www.gravatar.com/avatar/f1a2a40ddbc52508d5b53e9879961251?s=128&d=identicon&r=PG",
-        "display_name": "Matt Clark",
-        "link": "https://stackoverflow.com/users/1790644/matt-clark"
-		*/
          "name           TEXT    NOT NULL ); ";
 	 
    rc = sqlite3_exec(db, sql, 0, 0, &zErrMsg);
