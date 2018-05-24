@@ -34,8 +34,6 @@ int main(void) {
 	if (SP_dbOpen())
 		return 0;
 	SP_dbTableStructure();
-	
-	// Get Comment by the StackExchange API
 	iRet = pthread_create( &threadSOCKSEAPI, NULL, SP_GetComment, NULL); 
     if(iRet) { 
         printf(ANSI_COLOR_CYAN	"Thread error\n"	ANSI_COLOR_RESET); 
@@ -54,9 +52,11 @@ void *SP_GetComment (void *ptr) {
 	T_SOCK tSOCK_SEAPI;
 	tSOCK_SEAPI.iThrottle = 300; // default value without an token
 	tSOCK_SEAPI.iPort = 443;
-	strcpy(tSOCK_SEAPI.cHost, "api.stackexchange.com");
-	strcpy(tSOCK_SEAPI.cURI, "/2.2/comments?order=desc&sort=creation&site=stackoverflow");
+	//strcpy(tSOCK_SEAPI.cHost, "api.stackexchange.com");
+	//strcpy(tSOCK_SEAPI.cURI, "/2.2/comments?order=desc&sort=creation&site=stackoverflow");
 	// https://api.stackexchange.com/2.2/comments?order=desc&sort=creation&site=stackoverflow
+	strcpy(tSOCK_SEAPI.cHost, "lorky.com");
+	strcpy(tSOCK_SEAPI.cURI, "/");
 	
 	printf(ANSI_COLOR_GREEN	"Comments Thread Started\n"	ANSI_COLOR_RESET); 
 	SOCK_init(&tSOCK_SEAPI);
@@ -83,30 +83,55 @@ int SP_dbOpen () {
 int SP_dbTableStructure () {
 	char *zErrMsg = 0;
 	int rc;
-	char *sql;
+	char *sql1, *sql2, *sql3;
 
-	sql = "CREATE TABLE sumppump ("  \
-         "user_id INT PRIMARY KEY     NOT NULL," \
-		/*"has_more": true,
-		"quota_max": 10000,
-		"quota_remaining": 9995*/
+	sql1 = "CREATE TABLE sumppump ("  \
+			"user_id INT PRIMARY KEY     NOT NULL," \
+			"has_more INT," \
+			"quota_max INT," \
+			"quota_remaining INT);";
    
-   sql = "CREATE TABLE user ("  \
-         "user_id INT PRIMARY KEY     NOT NULL," \
-	 
-         "name           TEXT    NOT NULL ); ";
+   sql2 = "CREATE TABLE user ("  \
+			"user_id INT PRIMARY KEY     NOT NULL," \
+			"reputation INT," \
+			"user_id INT," \
+			"user_type TEXT," \
+			"accept_rate INT," \
+			"profile_image TEXT," \
+			"display_name TEXT," \
+			"link TEXT," \
+			"name TEXT); ";
 
-	sql = "CREATE TABLE comment ("  \
-         "user_id INT PRIMARY KEY     NOT NULL," \
-         "name           TEXT    NOT NULL ); ";
+	sql3 = "CREATE TABLE comment ("  \
+			"user_id INT PRIMARY KEY     NOT NULL," \
+			"edited INT," \
+			"score INT," \
+			"post_id TEXT," \
+			"comment_id INT," \
+			"user_type TEXT," \
+			"display_name TEXT," \
+			"link TEXT," \
+			"reply_to_user INT," \
+			"name TEXT); ";
 	 
-   rc = sqlite3_exec(db, sql, 0, 0, &zErrMsg);
-    
-   if( rc ) {
-      printf(ANSI_COLOR_YELLOW "Query error %s\n" ANSI_COLOR_RESET, zErrMsg);
-	  sqlite3_free(zErrMsg);
-   } else
-      printf(ANSI_COLOR_GREEN "Table created successfully\n" ANSI_COLOR_RESET);
+	rc = sqlite3_exec(db, sql1, 0, 0, &zErrMsg);
+	if( rc ) {
+		printf(ANSI_COLOR_YELLOW "Query error %s\n" ANSI_COLOR_RESET, zErrMsg);
+		sqlite3_free(zErrMsg);
+	} else
+		printf(ANSI_COLOR_GREEN "Table created successfully\n" ANSI_COLOR_RESET);
+	rc = sqlite3_exec(db, sql2, 0, 0, &zErrMsg);
+	if( rc ) {
+		printf(ANSI_COLOR_YELLOW "Query error %s\n" ANSI_COLOR_RESET, zErrMsg);
+		sqlite3_free(zErrMsg);
+	} else
+		printf(ANSI_COLOR_GREEN "Table created successfully\n" ANSI_COLOR_RESET);
+	rc = sqlite3_exec(db, sql3, 0, 0, &zErrMsg);
+	if( rc ) {
+		printf(ANSI_COLOR_YELLOW "Query error %s\n" ANSI_COLOR_RESET, zErrMsg);
+		sqlite3_free(zErrMsg);
+	} else
+		printf(ANSI_COLOR_GREEN "Table created successfully\n" ANSI_COLOR_RESET);
 }
 
 //-------------------------------------------------------------------

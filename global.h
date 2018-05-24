@@ -71,7 +71,7 @@ typedef struct t_COMMENT {
 	char link[255];	 
 	char name[255];
 	// extra : reply_to_user
-	int user_id;
+	int reply_to_user;
 } T_COMMENT, *PT_COMMENT;
 
 //---------------------------------------------------------------------------
