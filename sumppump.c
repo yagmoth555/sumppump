@@ -1,3 +1,7 @@
+// * sumppump/sumppump.c
+// * Copyright (c) 2018 Philippe Levesque <EMail: yagmoth555@yahoo.com>
+// * https://github.com/yagmoth555/sumppump
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <pthread.h>
@@ -83,7 +87,7 @@ int SP_dbOpen () {
 int SP_dbTableStructure () {
 	char *zErrMsg = 0;
 	int rc;
-	char *sql1, *sql2, *sql3;
+	char *sql1, *sql2, *sql3, *sql4, *sql5;
 
 	sql1 = "CREATE TABLE sumppump ("  \
 			"user_id INT PRIMARY KEY     NOT NULL," \
@@ -100,6 +104,7 @@ int SP_dbTableStructure () {
 			"profile_image TEXT," \
 			"display_name TEXT," \
 			"link TEXT," \
+			"site TEXT," \
 			"name TEXT); ";
 
 	sql3 = "CREATE TABLE comment ("  \
@@ -112,7 +117,19 @@ int SP_dbTableStructure () {
 			"display_name TEXT," \
 			"link TEXT," \
 			"reply_to_user INT," \
+			"site TEXT," \
 			"name TEXT); ";
+			
+	sql4 = "CREATE TABLE question ("  \
+			"question_id INT PRIMARY KEY     NOT NULL," \
+			"visit TEXT," \
+			"site TEXT," \
+			"link TEXT);";
+			
+	sql5 = "CREATE TABLE site ("  \
+			"site TEXT PRIMARY KEY     NOT NULL," \
+			"visit TEXT," \
+			"link TEXT);";
 	 
 	rc = sqlite3_exec(db, sql1, 0, 0, &zErrMsg);
 	if( rc ) {
@@ -132,6 +149,19 @@ int SP_dbTableStructure () {
 		sqlite3_free(zErrMsg);
 	} else
 		printf(ANSI_COLOR_GREEN "Table created successfully\n" ANSI_COLOR_RESET);
+	rc = sqlite3_exec(db, sql4, 0, 0, &zErrMsg);
+	if( rc ) {
+		printf(ANSI_COLOR_YELLOW "Query error %s\n" ANSI_COLOR_RESET, zErrMsg);
+		sqlite3_free(zErrMsg);
+	} else
+		printf(ANSI_COLOR_GREEN "Table created successfully\n" ANSI_COLOR_RESET);
+	rc = sqlite3_exec(db, sql5, 0, 0, &zErrMsg);
+	if( rc ) {
+		printf(ANSI_COLOR_YELLOW "Query error %s\n" ANSI_COLOR_RESET, zErrMsg);
+		sqlite3_free(zErrMsg);
+	} else
+		printf(ANSI_COLOR_GREEN "Table created successfully\n" ANSI_COLOR_RESET);
+
 }
 
 //-------------------------------------------------------------------

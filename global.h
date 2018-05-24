@@ -1,3 +1,7 @@
+// * sumppump/global.h
+// * Copyright (c) 2018 Philippe Levesque <EMail: yagmoth555@yahoo.com>
+// * https://github.com/yagmoth555/sumppump
+
 #ifndef   globalH
 #define   globalH
 //---------------------------------------------------------------------------
@@ -54,6 +58,7 @@ typedef struct t_USER {
 	char display_name[255];	
 	char link[255];	 
 	char name[255];
+	char site[255];
 } T_USER, *PT_USER;
 
 // COMMENT
@@ -70,6 +75,26 @@ typedef struct t_COMMENT {
 	char display_name[255];	
 	char link[255];	 
 	char name[255];
+	char site[255];
+	// extra : reply_to_user
+	int reply_to_user;
+} T_COMMENT, *PT_COMMENT;
+
+// COMMENT
+typedef struct t_COMMENT {
+	int user_id;
+	int edited;
+	int score;
+	int creation_date;
+	int post_id;
+	int comment_id;
+	char user_type[255];
+	int accept_rate;
+	char profile_image[255];
+	char display_name[255];	
+	char link[255];	 
+	char name[255];
+	char site[255];
 	// extra : reply_to_user
 	int reply_to_user;
 } T_COMMENT, *PT_COMMENT;

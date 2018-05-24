@@ -1,3 +1,7 @@
+// * sumppump/socket.c
+// * Copyright (c) 2018 Philippe Levesque <EMail: yagmoth555@yahoo.com>
+// * https://github.com/yagmoth555/sumppump
+
 //---------------------------------------------------------------------------
 #include "socket.h"
 
