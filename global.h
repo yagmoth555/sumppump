@@ -81,23 +81,19 @@ typedef struct t_COMMENT {
 } T_COMMENT, *PT_COMMENT;
 
 // COMMENT
-typedef struct t_COMMENT {
-	int user_id;
-	int edited;
-	int score;
-	int creation_date;
-	int post_id;
-	int comment_id;
-	char user_type[255];
-	int accept_rate;
-	char profile_image[255];
-	char display_name[255];	
+typedef struct t_QUESTION {
+	int question_id;
 	char link[255];	 
-	char name[255];
+	char visit[255];
 	char site[255];
-	// extra : reply_to_user
-	int reply_to_user;
-} T_COMMENT, *PT_COMMENT;
+} T_QUESTION, *PT_QUESTION;
+
+// SITE
+typedef struct t_SITE {
+	char link[255];	 
+	char visit[255];
+	char site[255];
+} T_SITE, *PT_SITE;
 
 //---------------------------------------------------------------------------
 extern char			*mystristr(char *haystack, const char *needle);
