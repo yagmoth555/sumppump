@@ -14,7 +14,7 @@ void SOCK_init(T_SOCK *tSOCK)
 {
 	tSOCK->ssl=NULL;
 	tSOCK->cCode = (char *) malloc(G_INIMINPAGESIZE);
-	//ZeroMemory(cCode, G_INIMINPAGESIZE);
+	ZeroMemory(tSOCK->cCode, G_INIMINPAGESIZE);
 	SOCK_SetReady(tSOCK, false);
 	SOCK_InitSSLCTX(tSOCK, KEYFILE, PASSWORD);
 }
@@ -261,7 +261,7 @@ int SOCK_send(T_SOCK *tSOCK, int param, char buf[1024])
 	//if (!IsReady())
 
 	// Reset global var
-	//ZeroMemory(cCode, G_INIMINPAGESIZE);
+	ZeroMemory(tSOCK->cCode, G_INIMINPAGESIZE);
 	tSOCK->lSize = 0;
 
 	if (param==0) {
@@ -273,7 +273,7 @@ int SOCK_send(T_SOCK *tSOCK, int param, char buf[1024])
 	/* Now construct our HTTP request */
 	if(!(request=(char *)malloc(request_len)))
 		return 0;
-	//ZeroMemory(request, request_len);
+	ZeroMemory(request, request_len);
 
 	if (param==0) {
 		snprintf(request, request_len, REQUEST_TEMPLATE, tSOCK->cURI, tSOCK->cHost, tSOCK->iPort);
@@ -347,7 +347,7 @@ int SOCK_recv(T_SOCK *tSOCK)
 	
 	tSOCK->lSize = 0;
 	ulContentLength = 0;
-	//ZeroMemory(szBuffer, BUFSIZZ);
+	ZeroMemory(szBuffer, BUFSIZZ);
 	header=false;
 	chunked=false;
 
@@ -367,10 +367,9 @@ int SOCK_recv(T_SOCK *tSOCK)
 		////////////
 		// CR-LF
 		my = mystristr(p, "\13\10");
-		if (my)
+		if (my) {
 			my = 0;
-
-		if (r<=2) {
+		
 			if (header==false) {
 				header=true;
 				// Get Content-Lenght
@@ -390,7 +389,7 @@ int SOCK_recv(T_SOCK *tSOCK)
 					}
 					szContentLength[i]=0;
 					ulContentLength = atol(szContentLength);
-					printf(ANSI_COLOR_YELLOW " %s bytes" ANSI_COLOR_RESET, szContentLength);
+					printf(ANSI_COLOR_YELLOW " %s bytes \n" ANSI_COLOR_RESET, szContentLength);
 				}
 				// Get if Chunked
 				my = NULL;
@@ -404,7 +403,7 @@ int SOCK_recv(T_SOCK *tSOCK)
 			else if (chunked)
 				return 1;
 		}
-
+		
 		tSOCK->lSize = tSOCK->lSize + r;
 		if (tSOCK->lSize > G_INIMINPAGESIZE) {
 			tSOCK->lSize = G_INIMINPAGESIZE;
@@ -469,18 +468,23 @@ char *SOCK_readLine(T_SOCK *tSOCK)
 				switch(SSL_get_error(tSOCK->ssl,r)){
 				case SSL_ERROR_NONE:
 					printf("SSL_ERROR_NONE");
+					return p;
 					break;
 				case SSL_ERROR_ZERO_RETURN:
-					printf("SSL_ERROR_ZERO_RETURN");
+					printf("SSL_ERROR_ZERO_RETURN\n");
+					return p;
 					break;
 				case SSL_ERROR_WANT_READ:
 					printf("SSL_ERROR_WANT_READ");
+					return p;
 					break;
 				case SSL_ERROR_WANT_WRITE:
 					printf("SSL_ERROR_WANT_WRITE");
+					return p;
 					break;
 				case SSL_ERROR_SYSCALL:
 					printf("SSL_ERROR_SYSCALL");
+					return p;
 					break;
 				default:
 					break;
@@ -502,7 +506,7 @@ char *SOCK_readLine(T_SOCK *tSOCK)
 			return NULL;
 		}
 
-		if (buffer == '\n') {
+		/*if (buffer == '\n') {
 			i++;
 			t = (char*) realloc (p, i * sizeof(char));
 			if (t!=NULL) {
@@ -514,7 +518,7 @@ char *SOCK_readLine(T_SOCK *tSOCK)
 				return NULL;
 			}
 			return p;
-		}	
+		}*/	
 		pending = SSL_pending(tSOCK->ssl);
 	}
 	

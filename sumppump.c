@@ -17,6 +17,10 @@ sqlite3 *db;
 void 	*SP_GetComment (void *ptr);
 int 	SP_dbOpen ();
 int 	SP_dbTableStructure();
+static void print_depth_shift(int depth);
+static void process_object(json_value* value, int depth);
+static void process_array(json_value* value, int depth);
+static void process_value(json_value* value, int depth);
 
 
 int main(void) { 
@@ -54,18 +58,26 @@ int main(void) {
 //-------------------------------------------------------------------
 void *SP_GetComment (void *ptr) {
 	T_SOCK tSOCK_SEAPI;
+	json_char* json; 
+	json_value* value; 
 	tSOCK_SEAPI.iThrottle = 300; // default value without an token
 	tSOCK_SEAPI.iPort = 443;
-	//strcpy(tSOCK_SEAPI.cHost, "api.stackexchange.com");
-	//strcpy(tSOCK_SEAPI.cURI, "/2.2/comments?order=desc&sort=creation&site=stackoverflow");
+	strcpy(tSOCK_SEAPI.cHost, "api.stackexchange.com");
+	strcpy(tSOCK_SEAPI.cURI, "/2.2/comments?order=desc&sort=creation&site=stackoverflow");
 	// https://api.stackexchange.com/2.2/comments?order=desc&sort=creation&site=stackoverflow
-	strcpy(tSOCK_SEAPI.cHost, "lorky.com");
-	strcpy(tSOCK_SEAPI.cURI, "/");
 	
-	printf(ANSI_COLOR_GREEN	"Comments Thread Started\n"	ANSI_COLOR_RESET); 
+	printf(ANSI_COLOR_GREEN	"Comments Thread Started\n"	ANSI_COLOR_.RESET); 
 	SOCK_init(&tSOCK_SEAPI);
 	SOCK_Connect(&tSOCK_SEAPI);
 	SOCK_send(&tSOCK_SEAPI, 0, NULL);
+	json = (json_char*)tSOCK_SEAPI.cCode; 
+	value = json_parse(json,tSOCK_SEAPI.lSize); 
+	if (value) { 
+		process_value(value, 0);  
+		json_value_free(value);  
+    } else
+		printf(ANSI_COLOR_RED "Stack Exchange API JSON not recognized.\n" ANSI_COLOR_RESET);
+    printf("%s\n", tSOCK_SEAPI.cCode);     
 }
 
 //-------------------------------------------------------------------
@@ -163,6 +175,78 @@ int SP_dbTableStructure () {
 		printf(ANSI_COLOR_GREEN "Table created successfully\n" ANSI_COLOR_RESET);
 
 }
+
+ static void process_object(json_value* value, int depth) 
+ { 
+         int length, x; 
+         if (value == NULL) { 
+                 return; 
+         } 
+         length = value->u.object.length; 
+         for (x = 0; x < length; x++) { 
+                 print_depth_shift(depth); 
+                 printf("object[%d].name = %s\n", x, value->u.object.values[x].name); 
+                 process_value(value->u.object.values[x].value, depth+1); 
+         } 
+ } 
+ 
+static void print_depth_shift(int depth) 
+ { 
+         int j; 
+         for (j=0; j < depth; j++) { 
+                 printf(" "); 
+         } 
+ } 
+  
+ static void process_array(json_value* value, int depth) 
+ { 
+         int length, x; 
+         if (value == NULL) { 
+                 return; 
+         } 
+         length = value->u.array.length; 
+         printf("array\n"); 
+         for (x = 0; x < length; x++) { 
+                 process_value(value->u.array.values[x], depth); 
+         } 
+ } 
+ 
+ 
+ static void process_value(json_value* value, int depth) 
+ { 
+         int j; 
+         if (value == NULL) { 
+                 return; 
+         } 
+         if (value->type != json_object) { 
+                 print_depth_shift(depth); 
+         } 
+        switch (value->type) { 
+                 case json_none: 
+                        printf("none\n"); 
+                        break; 
+               case json_object: 
+                        process_object(value, depth+1); 
+                        break; 
+                case json_array: 
+                       process_array(value, depth+1); 
+                        break; 
+                 case json_integer: 
+                         printf("int: %10" PRId64 "\n", value->u.integer); 
+                         break; 
+                 case json_double: 
+                         printf("double: %f\n", value->u.dbl); 
+                         break; 
+                 case json_string: 
+                         printf("string: %s\n", value->u.string.ptr); 
+                         break; 
+                case json_boolean: 
+                         printf("bool: %d\n", value->u.boolean); 
+                        break; 
+         } 
+} 
+
+
 
 //-------------------------------------------------------------------
 char *mystristr(char *haystack, const char *needle)
