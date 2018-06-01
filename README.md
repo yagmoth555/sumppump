@@ -1,7 +1,7 @@
 :warning:  **This project is an alpha - not finished yet** :warning:
 
 # sumppump
-Bot that detects spam and posts links to it to chatrooms for quick deletion. 
+Bot that detects spam / rudeness in comments and posts links to it to chatrooms for quick deletion. 
 
 Idea based of <a href="https://github.com/Charcoal-SE/SmokeDetector">smoke-detector</a> and done as a personnal's project. 
 
