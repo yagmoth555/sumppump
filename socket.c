@@ -244,7 +244,7 @@ void SOCK_SSLCheckCert(T_SOCK *tSOCK)
 int SOCK_send(T_SOCK *tSOCK, int param, char buf[1024])
 {
 	static char *REQUEST_TEMPLATE=
-	"GET %s HTTP/1.1\r\nUser-Agent:"
+	"GET %s HTTP/1.0\r\nUser-Agent:"
 	"sumppump (+https://github.com/yagmoth555/sumppump)\r\nHost: %s:%d\r\n\r\n";
 
 	char *request;
@@ -343,13 +343,14 @@ int SOCK_recv(T_SOCK *tSOCK)
 	int r;
 	unsigned long long	i = 0;
 	unsigned long	temp = 0;
-	_Bool header, chunked;
+	_Bool header, chunked, gzipped;
 	
 	tSOCK->lSize = 0;
 	ulContentLength = 0;
 	ZeroMemory(szBuffer, BUFSIZZ);
 	header=false;
 	chunked=false;
+	gzipped=false;
 
 	//if (BIO_set_nbio(tSOCK->sbio, 1) != 1) {
     //        printf("12");
@@ -366,42 +367,46 @@ int SOCK_recv(T_SOCK *tSOCK)
 
 		////////////
 		// CR-LF
-		my = mystristr(p, "\13\10");
-		if (my) {
-			my = 0;
-		
-			if (header==false) {
-				header=true;
-				// Get Content-Lenght
-				my = NULL;
-				my = mystristr(tSOCK->cCode, "Content-Length: ");
-				if (my) {
-					my = my + strlen("Content-Length: ");
-					i = 0;
-					while ((my) && my[0]!=13) {
-						if ((my[0] >= 48) && (my[0] <= 57)) {
-							szContentLength[i] = my[0];
+		if (r<=2) {
+			my = strstr(p, "\r\n");
+			if (my) {
+				if (header==false) {
+					header=true;
+					// Get Content-Lenght
+					my = strstr(tSOCK->cCode, "Content-Length: ");
+					if (my) {
+						my = my + strlen("Content-Length: ");
+						i = 0;
+						while ((my) && my[0]!=13) {
+							if ((my[0] >= 48) && (my[0] <= 57)) {
+								szContentLength[i] = my[0];
+							}
+							else
+								break;
+							i++;
+							my++;
 						}
-						else
-							break;
-						i++;
-						my++;
+						szContentLength[i]=0;
+						ulContentLength = atol(szContentLength);
+						printf(ANSI_COLOR_YELLOW " %s bytes \n" ANSI_COLOR_RESET, szContentLength);
 					}
-					szContentLength[i]=0;
-					ulContentLength = atol(szContentLength);
-					printf(ANSI_COLOR_YELLOW " %s bytes \n" ANSI_COLOR_RESET, szContentLength);
+					// Get if Chunked
+					my = strstr(tSOCK->cCode, "Transfer-Encoding: chunked");
+					if (my)
+						chunked=true;
+					else
+						chunked=false;		
+					// Get if body gzipped
+					my = strstr(tSOCK->cCode, "Content-Encoding: gzip");
+					if (my)
+						gzipped=true;
+					else
+						gzipped=false;
+					ulHeaderLength = tSOCK->lSize;
 				}
-				// Get if Chunked
-				my = NULL;
-				my = mystristr(tSOCK->cCode, "Transfer-Encoding: chunked");
-				if (my)
-					chunked=true;
-				else
-					chunked=false;
-				ulHeaderLength = tSOCK->lSize;
+				else if (chunked)
+					return 1;
 			}
-			else if (chunked)
-				return 1;
 		}
 		
 		tSOCK->lSize = tSOCK->lSize + r;
@@ -460,30 +465,29 @@ char *SOCK_readLine(T_SOCK *tSOCK)
 	int iReadSize = 1024;
 	int iTotalReceived = 0;
 
-
 	while (true) {
 		if (pending) {
 			r=SSL_read(tSOCK->ssl,&buffer,1);
 			if (r <= 0) {
 				switch(SSL_get_error(tSOCK->ssl,r)){
 				case SSL_ERROR_NONE:
-					printf("SSL_ERROR_NONE");
+					//printf("SSL_ERROR_NONE");
 					return p;
 					break;
 				case SSL_ERROR_ZERO_RETURN:
-					printf("SSL_ERROR_ZERO_RETURN\n");
+					//printf("SSL_ERROR_ZERO_RETURN\n");
 					return p;
 					break;
 				case SSL_ERROR_WANT_READ:
-					printf("SSL_ERROR_WANT_READ");
+					//printf("SSL_ERROR_WANT_READ");
 					return p;
 					break;
 				case SSL_ERROR_WANT_WRITE:
-					printf("SSL_ERROR_WANT_WRITE");
+					//printf("SSL_ERROR_WANT_WRITE");
 					return p;
 					break;
 				case SSL_ERROR_SYSCALL:
-					printf("SSL_ERROR_SYSCALL");
+					//printf("SSL_ERROR_SYSCALL");
 					return p;
 					break;
 				default:
@@ -506,7 +510,7 @@ char *SOCK_readLine(T_SOCK *tSOCK)
 			return NULL;
 		}
 
-		/*if (buffer == '\n') {
+		if ((buffer == '\n') || (buffer == '\0')) {
 			i++;
 			t = (char*) realloc (p, i * sizeof(char));
 			if (t!=NULL) {
@@ -518,7 +522,7 @@ char *SOCK_readLine(T_SOCK *tSOCK)
 				return NULL;
 			}
 			return p;
-		}*/	
+		}
 		pending = SSL_pending(tSOCK->ssl);
 	}
 	

@@ -6,6 +6,7 @@
 #ifndef   socket_classH
 #define   socket_classH
 //---------------------------------------------------------------------------
+#include <strings.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
