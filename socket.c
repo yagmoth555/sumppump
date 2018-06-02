@@ -14,6 +14,7 @@ void SOCK_init(T_SOCK *tSOCK)
 {
 	tSOCK->ssl=NULL;
 	tSOCK->cCode = (char *) malloc(G_INIMINPAGESIZE);
+	//tSOCK->cBody = (char *) malloc(G_INIMINPAGESIZE);
 	ZeroMemory(tSOCK->cCode, G_INIMINPAGESIZE);
 	SOCK_SetReady(tSOCK, false);
 	SOCK_InitSSLCTX(tSOCK, KEYFILE, PASSWORD);
@@ -245,7 +246,7 @@ int SOCK_send(T_SOCK *tSOCK, int param, char buf[1024])
 {
 	static char *REQUEST_TEMPLATE=
 	"GET %s HTTP/1.0\r\nUser-Agent:"
-	"sumppump (+https://github.com/yagmoth555/sumppump)\r\nHost: %s:%d\r\n\r\n";
+	"sumppump (+https://github.com/yagmoth555/sumppump)\r\nHost: %s:%d\r\nAccept-encoding: identity\r\n\r\n";
 
 	char *request;
 	char *p = NULL;
@@ -334,6 +335,7 @@ int SOCK_recv(T_SOCK *tSOCK)
 {
 	char *p = NULL;
 	char *my = NULL;
+	char cuncompress[G_INIMINPAGESIZE];
 	char szBuffer[BUFSIZZ];
 	char szContentLength[255];
 	char szChunkSize[255];
@@ -361,8 +363,21 @@ int SOCK_recv(T_SOCK *tSOCK)
 		if (p)
 			free(p);
 		p = SOCK_readLine(tSOCK);
-		if (!p)
+		if (!p) {
+			if (gzipped) {
+				my = strstr(tSOCK->cCode, "\r\n\r\n");
+				if (my) {
+					my+=2;
+					ZeroMemory(cuncompress, G_INIMINPAGESIZE);
+					temp=G_INIMINPAGESIZE;
+					temp = uncompress(cuncompress,&temp,my,ulContentLength);
+					printf(ANSI_COLOR_YELLOW "Uncompress %d \n" ANSI_COLOR_RESET, temp);
+					printf(ANSI_COLOR_YELLOW "Uncompress %s \n" ANSI_COLOR_RESET, my);
+					if (temp>=0) strcpy(my, cuncompress);
+				}
+			}
 			return 0;
+		}
 		r = strlen(p);
 
 		////////////
@@ -416,8 +431,9 @@ int SOCK_recv(T_SOCK *tSOCK)
 		}
 		if (tSOCK->lSize>=84736)
 			tSOCK->lSize = tSOCK->lSize;
-		if (((header) && (ulContentLength)) && ((tSOCK->lSize-ulHeaderLength) >= ulContentLength))
+		if (((header) && (ulContentLength)) && ((tSOCK->lSize-ulHeaderLength) >= ulContentLength)) {
 			return 1; // *** transfert complete ***
+		}
 		
 		if (chunked) {
 			if (ulChunkSize) {
@@ -448,7 +464,7 @@ int SOCK_recv(T_SOCK *tSOCK)
 			strcat(tSOCK->cCode, p);
 
 	} while (p);
-
+	
 	return 1;
 }
 

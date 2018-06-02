@@ -16,6 +16,7 @@
 #include <openssl/err.h>
 #include <openssl/bio.h>
 #include <stdbool.h>
+#include "zlib.h"
 #include "global.h"	
 //---------------------------------------------------------------------------
 #define 		CA_LIST 					"root.pem"
