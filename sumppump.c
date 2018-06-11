@@ -12,9 +12,11 @@
 #include "global.h"
 
 pthread_t 		threadSOCKSEAPI;
+pthread_t 		threadSOCKDIG;
 sqlite3 *db;
 
-void 	*SP_GetComment (void *ptr);
+void 	*SP_SEAPI_GetComment (void *ptr);
+void 	*SP_DIG_GetQuestion (void *ptr);
 int 	SP_dbOpen ();
 int 	SP_dbTableStructure();
 static void print_depth_shift(int depth);
@@ -22,7 +24,7 @@ static void process_object(json_value* value, int depth);
 static void process_array(json_value* value, int depth);
 static void process_value(json_value* value, int depth);
 
-
+//-------------------------------------------------------------------
 int main(void) { 
 	int iRet = 0;
 	printf(ANSI_COLOR_CYAN	"sumppump 0.0 - by yagmoth555\n"	ANSI_COLOR_RESET);
@@ -42,21 +44,44 @@ int main(void) {
 	if (SP_dbOpen())
 		return 0;
 	SP_dbTableStructure();
-	iRet = pthread_create( &threadSOCKSEAPI, NULL, SP_GetComment, NULL); 
-    if(iRet) { 
+	
+	// *******************************************
+	iRet = pthread_create( &threadSOCKSEAPI, NULL, SP_SEAPI_GetComment, NULL); 
+	if(iRet) { 
         printf(ANSI_COLOR_CYAN	"Thread error\n"	ANSI_COLOR_RESET); 
         exit(EXIT_FAILURE); 
     } 
-    
-
-	pthread_join(threadSOCKSEAPI, NULL); 
-	printf("\nClosing");
+	pthread_join(threadSOCKSEAPI, NULL);
+    iRet = pthread_create( &threadSOCKDIG, NULL, SP_DIG_GetQuestion, NULL); 
+	if(iRet) { 
+        printf(ANSI_COLOR_CYAN	"Thread error\n"	ANSI_COLOR_RESET); 
+        exit(EXIT_FAILURE); 
+    } 
+	pthread_join(threadSOCKDIG, NULL); 
+	
+	printf("\nClosing\n");
 	return 0;
 } 
 
+//-------------------------------------------------------------------
+void *SP_DIG_GetQuestion (void *ptr) {
+	// MSE HNQ: https://stackexchange.com/?pagesize=50
+	T_SOCK tSOCK_DIG;
+	json_char* json; 
+	json_value* value; 
+	tSOCK_DIG.iThrottle = 300; // default value without an token
+	tSOCK_DIG.iPort = 443;
+	strcpy(tSOCK_DIG.cHost, "stackexchange.com");
+	strcpy(tSOCK_DIG.cURI, "/?pagesize=50");
+
+	printf(ANSI_COLOR_GREEN	"SE HNQ DIG Thread Started\n"	ANSI_COLOR_RESET); 
+	SOCK_init(&tSOCK_DIG);
+	SOCK_Connect(&tSOCK_DIG);
+	SOCK_send(&tSOCK_DIG, 0, NULL);    
+}
 
 //-------------------------------------------------------------------
-void *SP_GetComment (void *ptr) {
+void *SP_SEAPI_GetComment (void *ptr) {
 	T_SOCK tSOCK_SEAPI;
 	json_char* json; 
 	json_value* value; 
@@ -64,9 +89,8 @@ void *SP_GetComment (void *ptr) {
 	tSOCK_SEAPI.iPort = 443;
 	strcpy(tSOCK_SEAPI.cHost, "api.stackexchange.com");
 	strcpy(tSOCK_SEAPI.cURI, "/2.2/comments?order=desc&sort=creation&site=stackoverflow");
-	// https://api.stackexchange.com/2.2/comments?order=desc&sort=creation&site=stackoverflow
-	
-	printf(ANSI_COLOR_GREEN	"Comments Thread Started\n"	ANSI_COLOR_.RESET); 
+
+	printf(ANSI_COLOR_GREEN	"SE API Comments Thread Started\n"	ANSI_COLOR_RESET); 
 	SOCK_init(&tSOCK_SEAPI);
 	SOCK_Connect(&tSOCK_SEAPI);
 	SOCK_send(&tSOCK_SEAPI, 0, NULL);
@@ -77,7 +101,7 @@ void *SP_GetComment (void *ptr) {
 		json_value_free(value);  
     } else
 		printf(ANSI_COLOR_RED "Stack Exchange API JSON not recognized.\n" ANSI_COLOR_RESET);
-    printf("%s\n", tSOCK_SEAPI.cCode);     
+    //printf("%s\n", tSOCK_SEAPI.cCode);     
 }
 
 //-------------------------------------------------------------------
@@ -176,6 +200,7 @@ int SP_dbTableStructure () {
 
 }
 
+//-------------------------------------------------------------------
  static void process_object(json_value* value, int depth) 
  { 
          int length, x; 
@@ -190,6 +215,7 @@ int SP_dbTableStructure () {
          } 
  } 
  
+//-------------------------------------------------------------------
 static void print_depth_shift(int depth) 
  { 
          int j; 
@@ -197,7 +223,8 @@ static void print_depth_shift(int depth)
                  printf(" "); 
          } 
  } 
-  
+ 
+//------------------------------------------------------------------- 
  static void process_array(json_value* value, int depth) 
  { 
          int length, x; 
@@ -211,7 +238,7 @@ static void print_depth_shift(int depth)
          } 
  } 
  
- 
+//------------------------------------------------------------------- 
  static void process_value(json_value* value, int depth) 
  { 
          int j; 
