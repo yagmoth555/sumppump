@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <ctype.h>
+#include "mysql/mysql.h"
 #include "socket.h"
 #include "sqlite3.h"
 #include "json.h"
