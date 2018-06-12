@@ -8,13 +8,14 @@
 #include <ctype.h>
 #include "mysql/mysql.h"
 #include "socket.h"
-#include "sqlite3.h"
 #include "json.h"
 #include "global.h"
+#include "secret.h"
 
 pthread_t 		threadSOCKSEAPI;
 pthread_t 		threadSOCKDIG;
-sqlite3 *db;
+MYSQL           mysql;
+MYSQL_RES       *res;
 
 void 	*SP_SEAPI_GetComment (void *ptr);
 void 	*SP_DIG_GetQuestion (void *ptr);
@@ -107,17 +108,18 @@ void *SP_SEAPI_GetComment (void *ptr) {
 
 //-------------------------------------------------------------------
 int SP_dbOpen () {
-   char *zErrMsg = 0;
-   int rc;
+	char *zErrMsg = 0;
+	int rc;
+	
+	printf(ANSI_COLOR_GREEN "Connecting to the database\n" ANSI_COLOR_RESET);
+	if (!(mysql_init(&mysql)))
+		printf(ANSI_COLOR_RED "MySQL error %s\n" ANSI_COLOR_RESET, mysql_error(&mysql));
+    if (!(mysql_real_connect(&mysql, G_szDBIP, G_szDBUSER ,G_szDBPASS, G_szDBINSTANCE, db_port, NULL, 0)))
+		printf(ANSI_COLOR_RED "Can't open database: %s\n" ANSI_COLOR_RESET, mysql_error(&mysql));    
 
-   rc = sqlite3_open("database.db", &db);
-   if( rc ) {
-      printf(ANSI_COLOR_RED "Can't open database: %s\n" ANSI_COLOR_RESET, sqlite3_errmsg(db));
-      return 1;
-   } else {
-      printf(ANSI_COLOR_GREEN "Opened database successfully\n" ANSI_COLOR_RESET);
-	  return 0;
-   }
+    printf(ANSI_COLOR_GREEN "Locking the database\n" ANSI_COLOR_RESET);
+    if (mysql_select_db(&mysql, G_szDBINSTANCE))
+        printf(ANSI_COLOR_RED "MySQL error %s\n" ANSI_COLOR_RESET, mysql_error(&mysql));
 }
 
 //-------------------------------------------------------------------
@@ -168,7 +170,7 @@ int SP_dbTableStructure () {
 			"visit TEXT," \
 			"link TEXT);";
 	 
-	rc = sqlite3_exec(db, sql1, 0, 0, &zErrMsg);
+	/*rc = sqlite3_exec(db, sql1, 0, 0, &zErrMsg);
 	if( rc ) {
 		printf(ANSI_COLOR_YELLOW "Query error %s\n" ANSI_COLOR_RESET, zErrMsg);
 		sqlite3_free(zErrMsg);
@@ -197,7 +199,7 @@ int SP_dbTableStructure () {
 		printf(ANSI_COLOR_YELLOW "Query error %s\n" ANSI_COLOR_RESET, zErrMsg);
 		sqlite3_free(zErrMsg);
 	} else
-		printf(ANSI_COLOR_GREEN "Table created successfully\n" ANSI_COLOR_RESET);
+		printf(ANSI_COLOR_GREEN "Table created successfully\n" ANSI_COLOR_RESET);*/
 
 }
 

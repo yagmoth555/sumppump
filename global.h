@@ -13,6 +13,7 @@
 #include <openssl/err.h>
 #include <openssl/bio.h>
 #include <stdbool.h>
+#include "mysql/mysql.h"
 //---------------------------------------------------------------------------
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -47,6 +48,8 @@ typedef struct t_SOCK {
 	// stackexchange
 	int iThrottle;
 	struct t_SOCK  	*prev;
+	// mysql
+	MYSQL			mysql;
 } T_SOCK, *PT_SOCK;
 
 // USER
