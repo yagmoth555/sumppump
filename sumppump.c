@@ -114,7 +114,7 @@ int SP_dbOpen () {
 	printf(ANSI_COLOR_GREEN "Connecting to the database\n" ANSI_COLOR_RESET);
 	if (!(mysql_init(&mysql)))
 		printf(ANSI_COLOR_RED "MySQL error %s\n" ANSI_COLOR_RESET, mysql_error(&mysql));
-    if (!(mysql_real_connect(&mysql, G_szDBIP, G_szDBUSER ,G_szDBPASS, G_szDBINSTANCE, db_port, NULL, 0)))
+    if (!(mysql_real_connect(&mysql, G_szDBIP, G_szDBUSER ,G_szDBPASS, G_szDBINSTANCE, 3306, NULL, 0)))
 		printf(ANSI_COLOR_RED "Can't open database: %s\n" ANSI_COLOR_RESET, mysql_error(&mysql));    
 
     printf(ANSI_COLOR_GREEN "Locking the database\n" ANSI_COLOR_RESET);

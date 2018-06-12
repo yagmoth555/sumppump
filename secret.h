@@ -8,3 +8,5 @@
 #define			G_szDBUSER					"username"
 #define			G_szDBPASS					"password"
 #define			G_szDBINSTANCE				"sumppump"
+//---------------------------------------------------------------------------
+#endif
