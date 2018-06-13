@@ -1,6 +1,7 @@
 // * sumppump/sumppump.c
 // * Copyright (c) 2018 Philippe Levesque <EMail: yagmoth555@yahoo.com>
 // * https://github.com/yagmoth555/sumppump
+// * lorky.eastus.cloudapp.azure.com
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -17,6 +18,7 @@ pthread_t 		threadSOCKDIG;
 MYSQL           mysql;
 MYSQL_RES       *res;
 
+int 	mysql_write(MYSQL mysql, char *string);
 void 	*SP_SEAPI_GetComment (void *ptr);
 void 	*SP_DIG_GetQuestion (void *ptr);
 int 	SP_dbOpen ();
@@ -43,7 +45,7 @@ int main(void) {
 	printf("\n");  
 	printf(".:*~*:._.:*~*:._.:*~*:._.:*~*:._.:*~*:._.:*~*:._.:*~*:._.:*~*:._.:*~*:\n"	ANSI_COLOR_RESET);  
     // *******************************************
-	if (SP_dbOpen())
+	if (!(SP_dbOpen()))
 		return 0;
 	SP_dbTableStructure();
 	
@@ -61,7 +63,9 @@ int main(void) {
     } 
 	pthread_join(threadSOCKDIG, NULL); 
 	
+	mysql_close(&mysql);
 	printf("\nClosing\n");
+	
 	return 0;
 } 
 
@@ -73,13 +77,51 @@ void *SP_DIG_GetQuestion (void *ptr) {
 	json_value* value; 
 	tSOCK_DIG.iThrottle = 300; // default value without an token
 	tSOCK_DIG.iPort = 443;
+	char *p1, *p2, *p3, *p4, *p5, *p6;
+	char szBuffer[1024];
+	char question_link[1024];
+	char question_id[1024];
+	char site[1024];
+	
 	strcpy(tSOCK_DIG.cHost, "stackexchange.com");
 	strcpy(tSOCK_DIG.cURI, "/?pagesize=50");
 
 	printf(ANSI_COLOR_GREEN	"SE HNQ DIG Thread Started\n"	ANSI_COLOR_RESET); 
 	SOCK_init(&tSOCK_DIG);
 	SOCK_Connect(&tSOCK_DIG);
-	SOCK_send(&tSOCK_DIG, 0, NULL);    
+	SOCK_send(&tSOCK_DIG, 0, NULL);  
+
+	// p1,p2 = <div data-sid=" |" class="question-container">
+	// p3,p4 = <a href=" | ">
+	// p5,p6
+	p1 = strstr(tSOCK_DIG.cCode, "<div data-sid=\"");
+		
+	while (p1) {
+        p2 = strstr(p1, "\" class=\"question-container\">");
+        if (p2) { 
+			snprintf(site, 1024, "%.*s", p2 - p1 - 15, p1 + 15);
+			p3 = strstr(p2, "<a href=\"");
+			if (p3) { 
+				p4 = strstr(p3, "\">");
+				if (p4) {
+					snprintf(question_link, 1024, "%.*s", p4 - p3 - 9, p3 + 9);
+					p3 = strstr(p3, "questions/");
+					p3 += 10;
+					p5 = strstr(p3, "/");
+					if (p5) {
+						snprintf(question_id, 1024, "%.*s", p5 - p3, p3);
+						snprintf(szBuffer, 1024, "INSERT INTO question (question_id, site, link) VALUES ('%s', '%s', '%s')", question_id, site, question_link);
+						mysql_write(mysql, szBuffer);	
+					}
+				}
+			}
+		}
+		p1+=15;
+		p1 = strstr(p1, "<div data-sid=\"");
+    }
+	
+	
+	
 }
 
 //-------------------------------------------------------------------
@@ -108,18 +150,22 @@ void *SP_SEAPI_GetComment (void *ptr) {
 
 //-------------------------------------------------------------------
 int SP_dbOpen () {
-	char *zErrMsg = 0;
-	int rc;
-	
 	printf(ANSI_COLOR_GREEN "Connecting to the database\n" ANSI_COLOR_RESET);
-	if (!(mysql_init(&mysql)))
+	if (!(mysql_init(&mysql))) {
 		printf(ANSI_COLOR_RED "MySQL error %s\n" ANSI_COLOR_RESET, mysql_error(&mysql));
-    if (!(mysql_real_connect(&mysql, G_szDBIP, G_szDBUSER ,G_szDBPASS, G_szDBINSTANCE, 3306, NULL, 0)))
+		return 0;
+	}
+    if (!(mysql_real_connect(&mysql, G_szDBIP, G_szDBUSER ,G_szDBPASS, G_szDBINSTANCE, 3306, NULL, 0))) {
 		printf(ANSI_COLOR_RED "Can't open database: %s\n" ANSI_COLOR_RESET, mysql_error(&mysql));    
+		return 0;
+	}
 
     printf(ANSI_COLOR_GREEN "Locking the database\n" ANSI_COLOR_RESET);
-    if (mysql_select_db(&mysql, G_szDBINSTANCE))
+    if (mysql_select_db(&mysql, G_szDBINSTANCE)) {
         printf(ANSI_COLOR_RED "MySQL error %s\n" ANSI_COLOR_RESET, mysql_error(&mysql));
+		return 0;
+	}
+	return 1;
 }
 
 //-------------------------------------------------------------------
@@ -134,43 +180,7 @@ int SP_dbTableStructure () {
 			"quota_max INT," \
 			"quota_remaining INT);";
    
-   sql2 = "CREATE TABLE user ("  \
-			"user_id INT PRIMARY KEY     NOT NULL," \
-			"reputation INT," \
-			"user_id INT," \
-			"user_type TEXT," \
-			"accept_rate INT," \
-			"profile_image TEXT," \
-			"display_name TEXT," \
-			"link TEXT," \
-			"site TEXT," \
-			"name TEXT); ";
-
-	sql3 = "CREATE TABLE comment ("  \
-			"user_id INT PRIMARY KEY     NOT NULL," \
-			"edited INT," \
-			"score INT," \
-			"post_id TEXT," \
-			"comment_id INT," \
-			"user_type TEXT," \
-			"display_name TEXT," \
-			"link TEXT," \
-			"reply_to_user INT," \
-			"site TEXT," \
-			"name TEXT); ";
-			
-	sql4 = "CREATE TABLE question ("  \
-			"question_id INT PRIMARY KEY     NOT NULL," \
-			"visit TEXT," \
-			"site TEXT," \
-			"link TEXT);";
-			
-	sql5 = "CREATE TABLE site ("  \
-			"site TEXT PRIMARY KEY     NOT NULL," \
-			"visit TEXT," \
-			"link TEXT);";
-	 
-	/*rc = sqlite3_exec(db, sql1, 0, 0, &zErrMsg);
+ 	/*rc = sqlite3_exec(db, sql1, 0, 0, &zErrMsg);
 	if( rc ) {
 		printf(ANSI_COLOR_YELLOW "Query error %s\n" ANSI_COLOR_RESET, zErrMsg);
 		sqlite3_free(zErrMsg);
@@ -276,7 +286,18 @@ static void print_depth_shift(int depth)
          } 
 } 
 
+//-------------------------------------------------------------------
+// mysql_write()
+//-------------------------------------------------------------------
+int mysql_write(MYSQL mysql, char *string) {
+	char *zErrMsg = 0;
+	int iError = 0;
 
+	if (mysql_query(&mysql, string))
+		printf("SQL error: %s\n %s\n", mysql_error(&mysql), string);
+
+	return 0;
+}
 
 //-------------------------------------------------------------------
 char *mystristr(char *haystack, const char *needle)
