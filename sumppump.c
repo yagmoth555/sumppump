@@ -15,18 +15,20 @@
 
 pthread_t 		threadSOCKSEAPI;
 pthread_t 		threadSOCKDIG;
+pthread_t 		threadSOCKDIGComment;
 MYSQL           mysql;
 MYSQL_RES       *res;
 
-int 	mysql_write(MYSQL mysql, char *string);
-void 	*SP_SEAPI_GetComment (void *ptr);
-void 	*SP_DIG_GetQuestion (void *ptr);
-int 	SP_dbOpen ();
-int 	SP_dbTableStructure();
-static void print_depth_shift(int depth);
-static void process_object(json_value* value, int depth);
-static void process_array(json_value* value, int depth);
-static void process_value(json_value* value, int depth);
+int 			mysql_write(MYSQL mysql, char *string);
+static void 	print_depth_shift(int depth);
+static void 	process_object(json_value* value, int depth);
+static void 	process_array(json_value* value, int depth);
+static void 	process_value(json_value* value, int depth);
+int 			SP_dbOpen ();
+int 			SP_dbTableStructure();
+void 			*SP_DIG_GetComment (void *ptr);
+void 			*SP_DIG_GetQuestion (void *ptr);
+void 			*SP_SEAPI_GetComment (void *ptr);
 
 //-------------------------------------------------------------------
 int main(void) { 
@@ -56,18 +58,93 @@ int main(void) {
         exit(EXIT_FAILURE); 
     } 
 	pthread_join(threadSOCKSEAPI, NULL);
-    iRet = pthread_create( &threadSOCKDIG, NULL, SP_DIG_GetQuestion, NULL); 
+    
+	iRet = pthread_create( &threadSOCKDIG, NULL, SP_DIG_GetQuestion, NULL); 
 	if(iRet) { 
         printf(ANSI_COLOR_CYAN	"Thread error\n"	ANSI_COLOR_RESET); 
         exit(EXIT_FAILURE); 
     } 
 	pthread_join(threadSOCKDIG, NULL); 
+
+	iRet = pthread_create( &threadSOCKDIGComment, NULL, SP_DIG_GetComment, NULL); 
+	if(iRet) { 
+        printf(ANSI_COLOR_CYAN	"Thread error\n"	ANSI_COLOR_RESET); 
+        exit(EXIT_FAILURE); 
+    } 
+	pthread_join(threadSOCKDIGComment, NULL); 
 	
 	mysql_close(&mysql);
 	printf("\nClosing\n");
 	
 	return 0;
-} 
+}
+ 
+//-------------------------------------------------------------------
+void *SP_DIG_GetComment (void *ptr) {
+	// MSE HNQ: https://stackexchange.com/?pagesize=50
+	T_SOCK tSOCK_DIGComment;
+	json_char* json; 
+	json_value* value; 
+	tSOCK_DIG.iThrottle = 300; // default value without an token
+	tSOCK_DIG.iPort = 443;
+	char *p1, *p2, *p3, *p4, *p5, *p6;
+	char szBuffer[1024];
+	char question_link[1024];
+	char question_id[1024];
+	char site[1024];
+	MYSQL_ROW row;
+	MYSQL_RES *res;
+	
+	printf(ANSI_COLOR_GREEN	"SE HNQ DIG Comments Thread Started\n"	ANSI_COLOR_RESET); 
+	if (mysql_query(&mysql,"SELECT site, visit, link FROM question WHERE visit is NULL"))
+		return 0;
+	if (!(res = mysql_store_result(&mysql)))
+		return 0;
+	
+	while ((row = mysql_fetch_row(res))) {
+		strcpy(tSOCK_DIGComment.cHost, row[0]);
+		strcpy(tSOCK_DIGComment.cURI, row[2]);
+
+		SOCK_init(&tSOCK_DIGComment);
+		SOCK_Connect(&tSOCK_DIGComment);
+		SOCK_send(&tSOCK_DIGComment, 0, NULL);  
+
+		// p1,p2 class="comment js-comment " data-comment-id="  | "> COMMENT-ID
+		// <li id="comment-120663" class="comment js-comment " data-comment-id="120663"> | </li>
+		
+		
+		/*p1 = strstr(tSOCK_DIG.cCode, "<div data-sid=\"");
+			
+		while (p1) {
+			p2 = strstr(p1, "\" class=\"question-container\">");
+			if (p2) { 
+				snprintf(site, 1024, "%.*s", p2 - p1 - 15, p1 + 15);
+				p3 = strstr(p2, "<a href=\"");
+				if (p3) { 
+					p4 = strstr(p3, "\">");
+					if (p4) {
+						snprintf(question_link, 1024, "%.*s", p4 - p3 - 9, p3 + 9);
+						p3 = strstr(p3, "questions/");
+						p3 += 10;
+						p5 = strstr(p3, "/");
+						if (p5) {
+							snprintf(question_id, 1024, "%.*s", p5 - p3, p3);
+							snprintf(szBuffer, 1024, "INSERT INTO question (question_id, site, link) VALUES ('%s', '%s', '%s')", question_id, site, question_link);
+							mysql_write(mysql, szBuffer);	
+						}
+					}
+				}
+			}
+			p1+=15;
+			p1 = strstr(p1, "<div data-sid=\"");
+		}*/
+		snprintf(szBuffer, 1024, "UPDATE question SET question.visit=NOW() WHERE question.link='%s'", row[2]);
+		printf("\n%s", szBuffer);
+		//mysql_query(&mysql, szBuffer);
+		//SOCK_delete(&tSOCK_DIGComment);
+	}
+	mysql_free_result(res);
+}
 
 //-------------------------------------------------------------------
 void *SP_DIG_GetQuestion (void *ptr) {
@@ -86,7 +163,7 @@ void *SP_DIG_GetQuestion (void *ptr) {
 	strcpy(tSOCK_DIG.cHost, "stackexchange.com");
 	strcpy(tSOCK_DIG.cURI, "/?pagesize=50");
 
-	printf(ANSI_COLOR_GREEN	"SE HNQ DIG Thread Started\n"	ANSI_COLOR_RESET); 
+	printf(ANSI_COLOR_GREEN	"SE HNQ DIG Question Thread Started\n"	ANSI_COLOR_RESET); 
 	SOCK_init(&tSOCK_DIG);
 	SOCK_Connect(&tSOCK_DIG);
 	SOCK_send(&tSOCK_DIG, 0, NULL);  
@@ -118,10 +195,7 @@ void *SP_DIG_GetQuestion (void *ptr) {
 		}
 		p1+=15;
 		p1 = strstr(p1, "<div data-sid=\"");
-    }
-	
-	
-	
+    }	
 }
 
 //-------------------------------------------------------------------
@@ -293,10 +367,12 @@ int mysql_write(MYSQL mysql, char *string) {
 	char *zErrMsg = 0;
 	int iError = 0;
 
-	if (mysql_query(&mysql, string))
-		printf("SQL error: %s\n %s\n", mysql_error(&mysql), string);
-
-	return 0;
+	if (mysql_query(&mysql, string)) {
+		//printf("SQL error: %s\n %s\n", mysql_error(&mysql), string);
+		return 0;
+	}
+		
+	return 1;
 }
 
 //-------------------------------------------------------------------
